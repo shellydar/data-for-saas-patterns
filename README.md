@@ -10,6 +10,7 @@ This repository contains a collection of samples, best practices and reference a
 * * [Multi-tenant vector databases](README.md#multi-tenant-vector-databases)
 * * [Scheduled Autoscaling Aurora Serverless V2](README.md#scheduled-autoscaling-aurora-serverless-v2)
 * * [Aurora Global Database Serverless V2](README.md#aurora-global-database-serverless-v2)
+* * [Multi-tenant Data Lake](README.md#multi-tenant-data-lake)
 * [Data for SaaS blogs](README.md#data-for-saas-blogs-books)
 * [Videos](README.md#videos-movie_camera)
 
@@ -50,7 +51,13 @@ This sample provides a CDK application that creates Amazon Aurora Global databas
 
 [Aurora Global Database Serverless V2](./samples/aurora-serverless-global-db-cdk/)
 
-## Data for SaaS Blogs :books:
+## Multi-tenant Data Lake 
+
+### Data lake
+
+Software companies can leverage data lakes to store and manage large volumes of structured and unstructured data from various sources. By consolidating data into a centralized repository, data lakes enable companies to analyze and extract insights from diverse data types, including application logs, sensor data, customer interactions, and more. This approach facilitates data-driven decision-making, improves operational efficiency, and fosters innovation by allowing companies to explore new business opportunities and develop data-driven products and services. Additionally, data lakes can serve as a foundation for implementing advanced analytics, machine learning, and artificial intelligence initiatives.
+
+# Data for SaaS Blogs :books:
 
 Below is a collection of published blog posts covering different aspects of building data architectures for SaaS applications on AWS:
 
