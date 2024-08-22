@@ -57,6 +57,10 @@ This sample provides a CDK application that creates Amazon Aurora Global databas
 
 Software companies can leverage data lakes to store and manage large volumes of structured and unstructured data from various sources. By consolidating data into a centralized repository, data lakes enable companies to analyze and extract insights from diverse data types, including application logs, sensor data, customer interactions, and more. This approach facilitates data-driven decision-making, improves operational efficiency, and fosters innovation by allowing companies to explore new business opportunities and develop data-driven products and services. Additionally, data lakes can serve as a foundation for implementing advanced analytics, machine learning, and artificial intelligence initiatives.
 
+In this sample we will create a Data Lake in S3, we will create Lake Formation permissions based on tags and allow the permissions to change based on the specific session.
+
+[Data Lake tenant isolation](./samples/data-lake-tenant-isolation/)
+
 # Data for SaaS Blogs :books:
 
 Below is a collection of published blog posts covering different aspects of building data architectures for SaaS applications on AWS:
