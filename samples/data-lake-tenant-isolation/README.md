@@ -9,8 +9,9 @@ In this sample we will create a Data Lake in S3, we will create Lake Formation p
 
 This sample creates the following resources:
 
-- S3 Bucket for the dataset sample
-- Lake Formation with initial tags and permissions
+- Data layer stack
+    - S3 Bucket for the dataset sample
+    - Lake Formation with initial tags and permissions
 - Compute layer stack
     - API GW
     - Cognito

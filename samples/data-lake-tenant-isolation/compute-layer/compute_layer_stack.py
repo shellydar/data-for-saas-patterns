@@ -6,6 +6,8 @@ from aws_cdk import (
     aws_cognito as cognito
 )
 from aws_solutions_constructs.aws_cognito_apigateway_lambda import CognitoToApiGatewayToLambda
+from constructs import Construct
+from typing import Any
 
 
 class compute_layer_stack(Stack):
