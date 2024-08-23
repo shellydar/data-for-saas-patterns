@@ -13,7 +13,7 @@ from aws_cdk import aws_iam as iam
 
 class DataLakeTenantIsolationStack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, LF_tag_role: iam.Role, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         
@@ -27,11 +27,6 @@ class DataLakeTenantIsolationStack(Stack):
                                                name="athena-default",
                                                result_location_prefix="athena-default-results/"
                                                )
-        
-        athenaWG.add_to_role_policy(PolicyStatement(
-            actions=["kms:Decrypt"],
-            resources=["*"]
-        ))
         tenantPolicy=iam.Policy(self, "TenantPolicy",
             statements=[
                 iam.PolicyStatement(

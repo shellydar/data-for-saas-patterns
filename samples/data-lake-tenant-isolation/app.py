@@ -8,7 +8,7 @@ from compute_layer.compute_layer_stack import compute_layer_stack
 
 app = cdk.App()
 
-tag_role=compute_layer_stack(app, "ComputeLayerStack").output_role
-DataLakeTenantIsolationStack(app, "DataLakeTenantIsolationStack")
+comp= compute_layer_stack(app, "ComputeLayerStack")
+DataLakeTenantIsolationStack(app, "DataLakeTenantIsolationStack", LF_tag_role=comp.get_role())
 
 app.synth()

@@ -24,7 +24,7 @@ class compute_layer_stack(Stack):
         construct = CognitoToApiGatewayToLambda(self, 'test-cognito-apigateway-lambda',
                                         lambda_function_props=_lambda.FunctionProps(
                                             code=_lambda.Code.from_asset(
-                                                'lambda/getTenantData'),
+                                                'compute_layer/lambda/getTenantData'),
                                             runtime=_lambda.Runtime.PYTHON_3_12,
                                             handler='getTenantData.handler'
                                         ),
@@ -40,7 +40,7 @@ class compute_layer_stack(Stack):
             lambda_function_props=_lambda.FunctionProps(
                 runtime=_lambda.Runtime.PYTHON_3_12,
                 handler='addTenant.handler',
-                code=_lambda.Code.from_asset('lambda/addTenant')
+                code=_lambda.Code.from_asset('compute_layer/lambda/addTenant')
             )
             )
         addTenantLambdacont.api_gateway.root.add_resource('addTenant').add_method('POST')
@@ -61,6 +61,8 @@ class compute_layer_stack(Stack):
                 resources=["*"]
             )
         )
-        LF_create_tag_role=addTenantLambdacont.api_gateway_cloud_watch_role
-        CfnOutput(self, 'LF_Tag_creator_role', value=LF_create_tag_role.role_arn)
-        
+        self.LF_create_tag_role=addTenantLambdacont.api_gateway_cloud_watch_role
+        CfnOutput(self, 'LF_Tag_creator_role', value=self.LF_create_tag_role.role_arn)       
+    
+    def get_role(self):
+        return self.LF_create_tag_role 
