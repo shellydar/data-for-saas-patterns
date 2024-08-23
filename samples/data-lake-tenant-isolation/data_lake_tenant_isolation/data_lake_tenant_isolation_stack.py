@@ -9,6 +9,7 @@ from aws_cdk.aws_s3 import Bucket
 from aws_cdk import Stack, RemovalPolicy, CfnOutput
 from aws_cdk.aws_iam import Policy, PolicyStatement
 from aws_cdk.aws_kms import Key  
+from aws_cdk import aws_iam as iam
 
 class DataLakeTenantIsolationStack(Stack):
 
@@ -16,18 +17,29 @@ class DataLakeTenantIsolationStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         
-        storage = dsf.storage.AnalyticsBucket(
-            self, "DataLakeStorage", 
-            removal_policy=RemovalPolicy.DESTROY,
-            encryption_key= Key(self, "StorageEncryptionKey",
-                removal_policy=RemovalPolicy.DESTROY,
-                enable_key_rotation=True
-            )
-        )
-        # The code that defines your stack goes here
+        storage = dsf.storage.DataLakeStorage(self, "MyDataLakeStorage")
 
-        # example resource
-        # queue = sqs.Queue(
-        #     self, "DataLakeTenantIsolationQueue",
-        #     visibility_timeout=Duration.seconds(300),
-        # )
+        cat = dsf.governance.DataLakeCatalog(self, "DataCatalog",
+          data_lake_storage=storage
+          )
+        
+        athenaWG=dsf.consumption.AthenaWorkGroup(self, "AthenaWorkGroupDefault",
+                                               name="athena-default",
+                                               result_location_prefix="athena-default-results/"
+                                               )
+        
+        athenaWG.add_to_role_policy(PolicyStatement(
+            actions=["kms:Decrypt"],
+            resources=["*"]
+        ))
+        tenantPolicy=iam.Policy(self, "TenantPolicy",
+            statements=[
+                iam.PolicyStatement(
+                    actions=["athena:*"],
+                    resources=["*"],
+                    effect=iam.Effect.ALLOW,
+                    conditions={"StringEquals": {"aws:ResourceAccount": "tenantTBD"}}
+                )
+            ]
+        )
+        

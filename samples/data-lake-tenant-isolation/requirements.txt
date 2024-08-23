@@ -1,6 +1,10 @@
 aws-cdk-lib
 constructs>=10.0.0,<11.0.0
 aws-solutions-constructs.aws-cognito-apigateway-lambda
+aws-solutions-constructs.aws-apigateway-lambda
 cdklabs.aws_data_solutions_framework
 boto3
 cdk-nag
+requests
+flask-jwt-extended
+python-jose
