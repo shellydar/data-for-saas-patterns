@@ -10,27 +10,21 @@ import json
 from botocore.exceptions import ClientError
 import boto3
 
-def dynamoDBRecord(newTenantRecord):
+def dynamoDBRecord(tenant_id):
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table('tenants')
-    table.put_item(Item=newTenantRecord)
-    logging.info(f"Added tenant record: {newTenantRecord}")
+    table.deleteItem(Key={'tenantId': tenant_id})
+    logging.info(f"deleted tenant record: {tenant_id}")
     
-def createlakeFormationTag(tenant_id):
+def deletelakeFormationTag(tenant_id):
     client=boto3.client('lakeformation')
-    try:
-        response = client.create_lf_tag(
-            TagKey="tenant_id",
-            TagValues=[
-                tenant_id
+    response = client.delete_lf_tag(
+        TagKey="tenant_id",
+        TagValues=[
+            tenant_id
             ]
-        )
-        logging.info(response)
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'AlreadyExistsException':
-            logging.info(f"Tag {tenant_id} already exists")
-        else:
-            raise e
+    )
+    logging.info(response)
 
 
 def lambda_handler(event, context):
@@ -55,16 +49,10 @@ def lambda_handler(event, context):
                 "message": "No tenant_id found in request"
             })
         }
-    # create a record in DynamoDB table "Tenants" with the tenant roleARN, the athena DB and the S3 output location
-    newTenantRecord = {
-        "tenantId": tenant_id,
-        "roleARN": os.environ.get('ROLE_ARN'),
-        "database": os.environ.get('DATABASE'),
-        "outputlocation": os.environ.get('OUTPUT_LOCATION')+"/tenant_id/"
-    }
-    
-    dynamoDBRecord(newTenantRecord)
-    createlakeFormationTag(tenant_id)
+
+    dynamoDBRecord(tenant_id)
+    deletelakeFormationTag(tenant_id)
+    logging.info(f"Deleted tenant: {tenant_id}")
     
     return {
         "statusCode": 200,

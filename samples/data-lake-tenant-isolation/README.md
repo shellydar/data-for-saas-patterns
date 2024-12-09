@@ -10,6 +10,8 @@ We will add new tenants as LF_tags as the new tenant on-board, and read their da
 
 This sample creates the following resources:
 
+
+
 - Data layer stack
     - S3 Bucket for the dataset sample
     - Lake Formation with initial tags and permissions

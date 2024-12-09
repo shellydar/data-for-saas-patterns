@@ -1,6 +1,7 @@
 import base64
 import os
 import time
+import boto3.session
 import requests
 import urllib.request
 from flask import session
@@ -14,12 +15,26 @@ from botocore.exceptions import ClientError
 
 keys_map = dict()
 
-def getData(tenant_id):
-    logging.info("Getting data for tenant: " + tenant_id:)
-    #logic to get data for the tenant_id
 
-
-    
+# write a function to get data
+def getData(tenant_id, query, roleARN, database, outputlocation):
+    logging.info("Querying Athena for tenant: " + tenant_id)
+    session= create_temp_tenant_session(access_role_arn=roleARN, session_name=tenant_id+time(), tenant_id=tenant_id, duration_sec=600)
+    # query athena using the session
+    client=boto3.client('athena', aws_access_key_id=session.get_credentials().access_key,
+                    aws_secret_access_key=session.get_credentials().secret_key,
+                    aws_session_token=session.get_credentials().token)
+    response = client.start_query_execution(
+        QueryString=query,
+        QueryExecutionContext={
+            'Database': database
+        },
+        ResultConfiguration={
+            'OutputLocation': outputlocation
+        }
+    )
+    logging.info(response)
+    return response
     
 def create_temp_tenant_session(access_role_arn, session_name, tenant_id, duration_sec):
     sts = boto3.client('sts')
@@ -40,21 +55,6 @@ def create_temp_tenant_session(access_role_arn, session_name, tenant_id, duratio
     return session    
 
 
-def queryAthena(query, database, s3_output, tenant_id):
-    logging.info("Querying Athena for tenant: " + tenant_id:)
-    session = create_temp_tenant_session(access_role_arn, 'tenantSession', tenant_id=tenant_id, duration_sec=900)
-    client=boto3.client('athena', aws_access_key_id=session.get_credentials().access_key,
-                    aws_secret_access_key=session.get_credentials().secret_key,
-                    aws_session_token=session.get_credentials().token)
-    response = client.start_query_execution(
-        QueryString=query,
-        QueryExecutionContext={
-            'Database': database
-        },
-        ResultConfiguration={
-            'OutputLocation': s3_output,
-        }
-    )
 def process_token(header):
     logging.debug(header)
 
@@ -105,12 +105,7 @@ def process_token(header):
             break
     if key_index == -1:
         raise ValueError('Public key not found in jwks.json')
-        # return {
-        #     "statusCode": 500,
-        #     "body": json.dumps({
-        #         "message": "Public key not found in jwks.json",
-        #     }),
-        #  }
+
     # construct the public key
     public_key = jwk.construct(keys[key_index])
     # get the last two sections of the token,
@@ -130,51 +125,86 @@ def process_token(header):
     return token, claims
     
 def lambda_handler(event, context):
-    #checking for event
-    logging.getLogger().setLevel(logging.DEBUG)
-    logging.info(event)
-    if not str(event).__contains__('headers'):
+    tenant_id = None
+    query = None
+    # First check if we have headers with JWT
+    if 'headers' in event:
+        try:
+            token, claims = process_token(event['headers'])
+            if 'custom:tenant_id' in claims:
+                tenant_id = claims['custom:tenant_id']
+                logging.info(f"Found tenant_id in JWT: {tenant_id}")
+        except Exception as e:
+            logging.warning(f"Could not process JWT token: {str(e)}")
+    
+    # If no tenant_id from JWT, check if it's directly in the event
+    if not tenant_id:
+        # Check different possible locations where tenantId might be
+        if 'tenantId' in event:
+            tenant_id = event['tenantId']
+        elif 'tenant_id' in event:
+            tenant_id = event['tenant_id']
+        elif 'body' in event:
+            try:
+                body = json.loads(event['body']) if isinstance(event['body'], str) else event['body']
+                tenant_id = body.get('tenantId') or body.get('tenant_id')
+            except json.JSONDecodeError:
+                logging.error("Could not parse event body as JSON")
+    
+    if not tenant_id:
         return {
-            "statusCode": 500,
+            "statusCode": 400,
             "body": json.dumps({
-                "message": "Missing headers",
-            }),
-        }
-
-    body_ = json.loads(event['body'])
-    logging.info("body: " + body_)
-    try:
-        start = time.time()
-        #verify token and get the claims and tenant_id from the token
-        token, claims = process_token(event['headers'])
-        end = time.time()
-        logging.debug("Verify token execution time: {}".format(end - start))
-    except ClientError as err:
-        logging.error("Error with token" + err)
-        return {
-                "statusCode": 500,
-                "body": json.dumps({
-                    "message": "Invalid token"
-                })
-            }
-    logging.debug('Token is valid')
-    # now we can use the claims
-    if not claims['custom:tenant_id']:
-       logging.error('No tenant_id found')
-       return {
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "No tenant_id attribute found in claims"
+                "message": "No tenant_id found in request"
             })
         }
-    else:
-        tenant_id = claims['custom:tenant_id']
-        logging.info("Getting data for tenant: " + tenant_id)
-        getData(tenant_id)
+    
+    if not query:
+        # Check different possible locations where tenantId might be
+        if 'query' in event:
+            query = event['query']
+        elif 'Query' in event:
+            query = event['Query']
+        elif 'body' in event:
+            try:
+                body = json.loads(event['body']) if isinstance(event['body'], str) else event['body']
+                query = body.get('query') or body.get('Query')
+            except json.JSONDecodeError:
+                logging.error("Could not parse event body as JSON")
+    
+    if not query:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({
+                "message": "No query found in request"
+            })
+        }
+    logging.info(f"Getting data {query} for tenant: {tenant_id}")
+    # Get the role ARN and database name from environment variables
+    roleARN = os.environ.get('ROLE_ARN')
+    database = os.environ.get('DATABASE')
+    outputlocation = os.environ.get('OUTPUT_LOCATION')
+    logging.info(f"Using role ARN: {roleARN} and database: {database}")
+    if not roleARN or not database:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Missing environment variables"
+            })
+        }
+    try:
+        data = getData(tenant_id, query, roleARN, database, outputlocation)
         return {
             "statusCode": 200,
             "body": json.dumps({
-                "message": "Success",
+                "message": data
+            })
+        }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": f"Error processing request: {str(e)}"
             })
         }
         
